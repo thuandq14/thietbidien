@@ -1,0 +1,102 @@
+name: Vibe Deploy - Build and Deploy
+run-name: Vibe Deploy ${{ inputs.job_id }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      job_id:
+        description: Deployment job id
+        required: true
+        type: string
+      package_manager:
+        description: Package manager
+        required: true
+        type: string
+      install_cmd:
+        description: Dependency install command
+        required: true
+        type: string
+      build_cmd:
+        description: Build command
+        required: true
+        type: string
+      output_dir:
+        description: Build output directory
+        required: true
+        type: string
+      artifact_name:
+        description: Build artifact name
+        required: true
+        type: string
+      node_version:
+        description: Node version
+        required: true
+        type: string
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+  npm_config_include_optional: "true"
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '${{ inputs.node_version }}'
+
+      - name: Prepare package manager
+        run: |
+          case "${{ inputs.package_manager }}" in
+            yarn)
+              corepack enable
+              corepack prepare yarn@stable --activate
+              ;;
+            pnpm)
+              corepack enable
+              corepack prepare pnpm@latest --activate
+              ;;
+            bun)
+              curl -fsSL https://bun.sh/install | bash
+              echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+              ;;
+            *)
+              true
+              ;;
+          esac
+
+      - name: Install dependencies
+        run: |
+          rm -rf node_modules
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm cache verify
+          fi
+          ${{ inputs.install_cmd }}
+          if [ "${{ inputs.package_manager }}" = "npm" ]; then
+            npm install --no-save @tailwindcss/oxide-linux-x64-gnu --include=optional || true
+            npm rebuild @tailwindcss/oxide @tailwindcss/oxide-linux-x64-gnu || true
+          fi
+
+      - name: Build project
+        run: ${{ inputs.build_cmd }}
+        env:
+          NODE_ENV: production
+          CI: false
+
+      - name: Verify build output
+        run: |
+          test -d "${{ inputs.output_dir }}" || (echo "Missing build dir: ${{ inputs.output_dir }}" && exit 1)
+          find "${{ inputs.output_dir }}" -maxdepth 2 | head -50
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: ./${{ inputs.output_dir }}/
+          if-no-files-found: error
+          retention-days: 1
