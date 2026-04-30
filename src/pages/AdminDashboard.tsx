@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import AdminLayout from '../components/AdminLayout';
+import { supabase } from '../lib/supabase';
+import { useSettings } from '../context/SettingsContext';
 import { 
   Building2, 
   PhoneCall, 
@@ -10,17 +12,87 @@ import {
   TrendingUp, 
   CheckCircle,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Shield,
+  Loader2,
+  Type
 } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export default function AdminDashboard() {
-  const [settings, setSettings] = useState({
-    companyName: 'Công ty Điện Bình Dương',
-    phone: '0900.XXX.XXX',
-    email: 'info@diencongnghiepbd.com',
-    address: 'KCN VSIP II-A, Tân Uyên, Bình Dương'
+  const { settings: globalSettings, refreshSettings } = useSettings();
+  const [localSettings, setLocalSettings] = useState({
+    companyName: '',
+    phone: '',
+    email: '',
+    address: '',
+    heroTitle: '',
+    heroSubtitle: '',
+    heroImageUrl: ''
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  useEffect(() => {
+    if (globalSettings) {
+      setLocalSettings({
+        companyName: globalSettings.companyName || '',
+        phone: globalSettings.phone || '',
+        email: globalSettings.email || '',
+        address: globalSettings.address || '',
+        heroTitle: globalSettings.heroTitle || '',
+        heroSubtitle: globalSettings.heroSubtitle || '',
+        heroImageUrl: globalSettings.heroImageUrl || 'https://images.unsplash.com/photo-1581092160562-40aa08e78837?q=80&w=2070&auto=format&fit=crop'
+      });
+      setLoading(false);
+    }
+  }, [globalSettings]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setMessage(null);
+    try {
+      // Xử lý lưu từng key một cách an toàn (Fallback nếu không có Unique Constraint)
+      const keys = Object.keys(localSettings);
+      
+      for (const key of keys) {
+        // @ts-ignore
+        const value = String(localSettings[key]);
+        
+        // Kiểm tra xem key đã tồn tại chưa
+        const { data: existing } = await supabase
+          .from('site_settings')
+          .select('key')
+          .eq('key', key)
+          .maybeSingle();
+
+        if (existing) {
+          // Nếu tồn tại thì update
+          const { error: updateError } = await supabase
+            .from('site_settings')
+            .update({ value, updated_at: new Date().toISOString() })
+            .eq('key', key);
+          if (updateError) throw updateError;
+        } else {
+          // Nếu chưa thì insert
+          const { error: insertError } = await supabase
+            .from('site_settings')
+            .insert({ key, value, updated_at: new Date().toISOString() });
+          if (insertError) throw insertError;
+        }
+      }
+      
+      await refreshSettings();
+      setMessage({ type: 'success', text: 'Đã lưu thay đổi thành công và cập nhật website!' });
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err: any) {
+      console.error('Error saving settings:', err);
+      setMessage({ type: 'error', text: 'Lỗi khi lưu: ' + (err.message || 'Vui lòng kiểm tra quyền bảng site_settings') });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const stats = [
     { label: 'Số lượt xem trang', value: '12,450', change: '+12%', icon: Eye, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -28,6 +100,16 @@ export default function AdminDashboard() {
     { label: 'Dự án đang chạy', value: '8', change: 'Mới +2', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
     { label: 'Dịch vụ hoàn tất', value: '156', change: '+12', icon: CheckCircle, color: 'text-purple-600', bg: 'bg-purple-50' },
   ];
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="animate-spin text-brand-600 w-10 h-10" />
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -37,11 +119,27 @@ export default function AdminDashboard() {
             <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2 uppercase">BẢNG ĐIỀU KHIỂN QUẢN TRỊ</h1>
             <p className="text-slate-500 font-medium">Chào mừng trở lại! Dưới đây là hiệu suất website của bạn.</p>
           </div>
-          <button className="flex items-center gap-2 bg-brand-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-brand-700 transition shadow-lg shadow-brand-500/20">
+          <a 
+            href="/" 
+            target="_blank"
+            className="flex items-center gap-2 bg-brand-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-brand-700 transition shadow-lg shadow-brand-500/20"
+          >
             <ExternalLink size={18} />
             Xem Trang Chủ
-          </button>
+          </a>
         </div>
+
+        {/* Message Alert */}
+        {message && (
+          <motion.div 
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`p-4 rounded-2xl mb-8 flex items-center gap-3 font-bold ${message.type === 'success' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}
+          >
+            {message.type === 'success' ? <CheckCircle size={20} /> : <Shield size={20} />}
+            {message.text}
+          </motion.div>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
@@ -75,7 +173,6 @@ export default function AdminDashboard() {
                   </div>
                   <h3 className="font-black text-lg text-slate-900 uppercase tracking-tight">THÔNG TIN CÔNG TY</h3>
                 </div>
-                <button className="text-brand-600 font-bold text-sm hover:underline">Chỉnh sửa nâng cao</button>
               </div>
               
               <div className="p-8 space-y-6">
@@ -87,8 +184,9 @@ export default function AdminDashboard() {
                     </label>
                     <input 
                       type="text" 
-                      value={settings.companyName}
-                      onChange={(e) => setSettings({...settings, companyName: e.target.value})}
+                      placeholder="Công ty Điện Bình Dương"
+                      value={localSettings.companyName}
+                      onChange={(e) => setLocalSettings({...localSettings, companyName: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
                     />
                   </div>
@@ -99,8 +197,9 @@ export default function AdminDashboard() {
                     </label>
                     <input 
                       type="text" 
-                      value={settings.phone}
-                      onChange={(e) => setSettings({...settings, phone: e.target.value})}
+                      placeholder="0900.XXX.XXX"
+                      value={localSettings.phone}
+                      onChange={(e) => setLocalSettings({...localSettings, phone: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
                     />
                   </div>
@@ -113,8 +212,9 @@ export default function AdminDashboard() {
                   </label>
                   <input 
                     type="email" 
-                    value={settings.email}
-                    onChange={(e) => setSettings({...settings, email: e.target.value})}
+                    placeholder="info@diencongnghiepbd.com"
+                    value={localSettings.email}
+                    onChange={(e) => setLocalSettings({...localSettings, email: e.target.value})}
                     className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
                   />
                 </div>
@@ -126,15 +226,60 @@ export default function AdminDashboard() {
                   </label>
                   <input 
                     type="text" 
-                    value={settings.address}
-                    onChange={(e) => setSettings({...settings, address: e.target.value})}
+                    placeholder="KCN VSIP II-A, Tân Uyên, Bình Dương"
+                    value={localSettings.address}
+                    onChange={(e) => setLocalSettings({...localSettings, address: e.target.value})}
                     className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
                   />
                 </div>
 
-                <button className="w-full bg-brand-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 mt-4">
-                  <Save size={20} />
-                  Lưu Thay Đổi
+                <div className="h-px bg-slate-100 my-4" />
+                
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-amber-500 p-2 rounded-xl text-white">
+                    <Type size={20} />
+                  </div>
+                  <h3 className="font-black text-lg text-slate-900 uppercase tracking-tight">TRANG CHỦ (HERO)</h3>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Tiêu Đề Lớn (Hero Title)</label>
+                  <input 
+                    type="text" 
+                    value={localSettings.heroTitle}
+                    onChange={(e) => setLocalSettings({...localSettings, heroTitle: e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Mô Tả Ngắn (Hero Subtitle)</label>
+                  <textarea 
+                    rows={3}
+                    value={localSettings.heroSubtitle}
+                    onChange={(e) => setLocalSettings({...localSettings, heroSubtitle: e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Ảnh Nền (Hero Image URL)</label>
+                  <input 
+                    type="text" 
+                    value={localSettings.heroImageUrl}
+                    onChange={(e) => setLocalSettings({...localSettings, heroImageUrl: e.target.value})}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-4 font-medium focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-all"
+                  />
+                  <p className="text-[10px] text-slate-400 italic">Dán link ảnh từ Unsplash hoặc link trực tiếp để đổi ảnh nền.</p>
+                </div>
+
+                <button 
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="w-full bg-brand-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-black transition-all flex items-center justify-center gap-2 mt-4 disabled:opacity-50"
+                >
+                  {saving ? <Loader2 className="animate-spin" /> : <Save size={20} />}
+                  {saving ? 'Đang lưu...' : 'Lưu Thay Đổi'}
                 </button>
               </div>
             </div>

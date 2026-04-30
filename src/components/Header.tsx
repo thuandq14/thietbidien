@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Menu, X, Phone, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { settings } = useSettings();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -22,7 +24,7 @@ export default function Header() {
             <Shield className="text-white w-6 h-6" />
           </div>
           <span className={`text-xl font-bold tracking-tight ${isScrolled ? 'text-brand-900' : 'text-white'}`}>
-            ĐIỆN CÔNG NGHIỆP <span className="text-brand-500 underline decoration-accent">BÌNH DƯƠNG</span>
+            {settings.companyName.split(' ')[0]} <span className="text-brand-500 underline decoration-accent">{settings.companyName.split(' ').slice(1).join(' ')}</span>
           </span>
         </div>
 
@@ -33,9 +35,9 @@ export default function Header() {
               {item}
             </a>
           ))}
-          <a href="tel:0900000000" className="flex items-center gap-2 bg-brand-600 text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-brand-700 transition">
+          <a href={`tel:${settings.phone}`} className="flex items-center gap-2 bg-brand-600 text-white px-5 py-2 rounded-full text-sm font-semibold hover:bg-brand-700 transition">
             <Phone size={16} />
-            0900.XXX.XXX
+            {settings.phone}
           </a>
         </div>
 

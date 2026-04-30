@@ -4,8 +4,11 @@ import Services from '../components/Services';
 import Footer from '../components/Footer';
 import { motion } from 'motion/react';
 import { BadgeCheck, Users, Trophy, Factory } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function Home() {
+  const { settings } = useSettings();
+
   return (
     <div className="relative">
       <Header />
@@ -87,15 +90,15 @@ export default function Home() {
         <div className="absolute inset-0 bg-brand-600" />
         <div className="absolute inset-0 industrial-grid opacity-20" />
         <div className="container mx-auto px-6 relative z-10 text-center">
-          <h2 className="text-4xl md:text-6xl font-black text-white mb-10 leading-tight">
+          <h2 className="text-4xl md:text-6xl font-black text-white mb-10 leading-tight uppercase">
             SẴN SÀNG CHO DỰ ÁN <br />
             TIẾP THEO CỦA BẠN?
           </h2>
           <div className="flex flex-col sm:flex-row justify-center gap-6">
-            <a href="tel:0900000000" className="bg-white text-brand-600 px-10 py-5 rounded-full font-black text-lg shadow-xl hover:scale-105 transition-transform">
-              GỌI TƯ VẤN NGAY: 0900.XXX.XXX
+            <a href={`tel:${settings.phone}`} className="bg-white text-brand-600 px-10 py-5 rounded-full font-black text-lg shadow-xl hover:scale-105 transition-transform uppercase tracking-tight">
+              GỌI TƯ VẤN NGAY: {settings.phone}
             </a>
-            <a href="mailto:info@diencongnghiepbd.com" className="bg-brand-900 text-white px-10 py-5 rounded-full font-black text-lg shadow-xl hover:bg-black transition-colors">
+            <a href={`mailto:${settings.email}`} className="bg-brand-900 text-white px-10 py-5 rounded-full font-black text-lg shadow-xl hover:bg-black transition-colors uppercase tracking-tight">
               GỬI EMAIL YÊU CẦU
             </a>
           </div>

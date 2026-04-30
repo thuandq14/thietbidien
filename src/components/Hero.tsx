@@ -1,14 +1,17 @@
 import { motion } from 'motion/react';
 import { ArrowRight, Settings, Zap } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function Hero() {
+  const { settings } = useSettings();
+
   return (
     <section className="relative h-screen flex items-center overflow-hidden bg-brand-900">
       {/* Background Decor */}
       <div className="absolute inset-0 z-0">
         <div className="absolute inset-0 bg-gradient-to-r from-brand-900 via-brand-900/80 to-transparent" />
         <img 
-          src="https://images.unsplash.com/photo-1581092160562-40aa08e78837?q=80&w=2070&auto=format&fit=crop" 
+          src={settings.heroImageUrl} 
           alt="Industrial Electrical" 
           className="w-full h-full object-cover opacity-60"
         />
@@ -31,10 +34,13 @@ export default function Hero() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-tight mb-8"
+            className="text-5xl md:text-7xl lg:text-8xl font-black text-white leading-tight mb-8 uppercase"
           >
-            KIẾN TẠO <br />
-            <span className="text-brand-500">NĂNG LƯỢNG</span> BỀN VỮNG
+            {settings.heroTitle?.split(' ').map((word, i) => (
+              <span key={i} className={i === 1 ? 'text-brand-500' : ''}>
+                {word} {i === 1 && <br />}
+              </span>
+            ))}
           </motion.h1>
 
           <motion.p 
@@ -43,7 +49,7 @@ export default function Hero() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="text-slate-300 text-lg md:text-xl max-w-xl font-light mb-10 leading-relaxed"
           >
-            Cung cấp giải pháp thiết kế, lắp đặt và bảo trì hệ thống điện công nghiệp tiêu chuẩn quốc tế tại Bình Dương và các khu vực lân cận.
+            {settings.heroSubtitle}
           </motion.p>
 
           <motion.div 

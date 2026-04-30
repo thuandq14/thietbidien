@@ -1,6 +1,9 @@
 import { Mail, MapPin, Phone, Shield, Facebook, Youtube, Linkedin } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function Footer() {
+  const { settings } = useSettings();
+
   return (
     <footer className="bg-brand-900 text-white pt-20 pb-10">
       <div className="container mx-auto px-6">
@@ -10,13 +13,13 @@ export default function Footer() {
               <div className="bg-brand-600 p-2 rounded-lg">
                 <Shield className="text-white w-6 h-6" />
               </div>
-              <span className="text-xl font-bold tracking-tight text-white">
-                ĐIỆN CÔNG NGHIỆP <br />
-                <span className="text-brand-500">BÌNH DƯƠNG</span>
+              <span className="text-xl font-bold tracking-tight text-white uppercase">
+                {settings.companyName.split(' ')[0]} <br />
+                <span className="text-brand-500">{settings.companyName.split(' ').slice(1).join(' ')}</span>
               </span>
             </div>
             <p className="text-slate-400 font-light mb-8 leading-relaxed">
-              Dẫn đầu trong lĩnh vực cung cấp thiết bị và giải pháp điện công nghiệp chuyên nghiệp tại khu vực phía Nam.
+              Dẫn đầu trong lĩnh vực cung cấp thiết bị và giải pháp điện công nghiệp chuyên nghiệp tại khu vực {settings.address.split(',').pop()}.
             </p>
             <div className="flex gap-4">
               {[Facebook, Youtube, Linkedin].map((Icon, i) => (
@@ -63,22 +66,22 @@ export default function Footer() {
             <ul className="space-y-5">
               <li className="flex gap-4">
                 <div className="mt-1 flex-shrink-0 bg-white/5 p-2 rounded-lg"><MapPin size={18} className="text-brand-500" /></div>
-                <span className="text-slate-400 font-light leading-relaxed">KCN VSIP II-A, Tân Uyên, Bình Dương</span>
+                <span className="text-slate-400 font-light leading-relaxed">{settings.address}</span>
               </li>
               <li className="flex gap-4">
                 <div className="mt-1 flex-shrink-0 bg-white/5 p-2 rounded-lg"><Phone size={18} className="text-brand-500" /></div>
-                <span className="text-slate-400 font-light">0900.XXX.XXX</span>
+                <span className="text-slate-400 font-light">{settings.phone}</span>
               </li>
               <li className="flex gap-4">
                 <div className="mt-1 flex-shrink-0 bg-white/5 p-2 rounded-lg"><Mail size={18} className="text-brand-500" /></div>
-                <span className="text-slate-400 font-light">info@diencongnghiepbd.com</span>
+                <span className="text-slate-400 font-light">{settings.email}</span>
               </li>
             </ul>
           </div>
         </div>
 
         <div className="pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-4 text-slate-500 text-sm">
-          <p>© 2026 Công Ty Điện Công Nghiệp Bình Dương. All rights reserved.</p>
+          <p>© 2026 {settings.companyName}. All rights reserved.</p>
           <div className="flex gap-8">
             <a href="#" className="hover:text-white transition">Privacy Policy</a>
             <a href="#" className="hover:text-white transition">Terms of Service</a>

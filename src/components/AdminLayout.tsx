@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { 
@@ -23,14 +23,25 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const location = useLocation();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        
+        if (!session) {
+          navigate('/login');
+        } else {
+          setUser(session.user);
+        }
+      } catch (err) {
+        console.error('Session check error:', err);
         navigate('/login');
-      } else {
-        setUser(session.user);
+      } finally {
         setLoading(false);
       }
-    });
+    };
+
+    checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
