@@ -70,6 +70,15 @@ jobs:
               ;;
           esac
 
+      - name: Prepare environment files
+        run: |
+          if [ ! -f ".env" ] && [ -f ".env.example" ]; then
+            cp .env.example .env
+          fi
+          if [ ! -f ".env.production" ] && [ -f ".env.example" ]; then
+            cp .env.example .env.production
+          fi
+
       - name: Install dependencies
         run: |
           rm -rf node_modules
