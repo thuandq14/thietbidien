@@ -12,6 +12,10 @@ on:
         description: Package manager
         required: true
         type: string
+      package_manager_version:
+        description: Package manager version
+        required: false
+        type: string
       install_cmd:
         description: Dependency install command
         required: true
@@ -59,7 +63,7 @@ jobs:
               ;;
             pnpm)
               corepack enable
-              corepack prepare pnpm@latest --activate
+              corepack prepare "pnpm@${{ inputs.package_manager_version || '8' }}" --activate
               ;;
             bun)
               curl -fsSL https://bun.sh/install | bash
@@ -85,7 +89,11 @@ jobs:
           if [ "${{ inputs.package_manager }}" = "npm" ]; then
             npm cache verify
           fi
-          ${{ inputs.install_cmd }}
+          if [ "${{ inputs.package_manager }}" = "pnpm" ]; then
+            (${{ inputs.install_cmd }}) || pnpm install --no-frozen-lockfile
+          else
+            ${{ inputs.install_cmd }}
+          fi
           if [ "${{ inputs.package_manager }}" = "npm" ]; then
             npm install --no-save @tailwindcss/oxide-linux-x64-gnu --include=optional || true
             npm rebuild @tailwindcss/oxide @tailwindcss/oxide-linux-x64-gnu || true
